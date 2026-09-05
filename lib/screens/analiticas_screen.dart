@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/app_state.dart';
 
 class AnaliticasScreen extends StatelessWidget {
   const AnaliticasScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final appState = Provider.of<AppState>(context);
+    final salesMap = appState.filteredSalesByPupusaType;
+    final revenueMap = appState.filteredRevenueByPupusaType;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Rendimiento y Ventas', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: const Text('Estadísticas y Tendencias', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
@@ -20,64 +26,110 @@ class AnaliticasScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Grid de Métricas
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 1.5,
-              children: const [
-                _MetricCard(title: 'Pupusas hoy', value: '147', icon: Icons.local_fire_department, iconColor: Colors.deepOrange),
-                _MetricCard(title: 'Ingresos', value: '\$183.75', icon: Icons.attach_money, iconColor: Colors.deepOrange),
-                _MetricCard(title: 'Completados', value: '23', icon: Icons.check_circle_outline, iconColor: Colors.orange),
-                _MetricCard(title: 'Promedio / Pedido', value: '\$7.98', icon: Icons.trending_up, iconColor: Colors.deepOrange),
+            // FILTROS DE TIEMPO (DIARIO, SEMANAL, MENSUAL)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _FilterChipButton(
+                  label: 'Diario',
+                  isSelected: appState.selectedFilter == TimeFilter.diario,
+                  onTap: () => appState.setFilter(TimeFilter.diario),
+                ),
+                const SizedBox(width: 8),
+                _FilterChipButton(
+                  label: 'Semanal',
+                  isSelected: appState.selectedFilter == TimeFilter.semanal,
+                  onTap: () => appState.setFilter(TimeFilter.semanal),
+                ),
+                const SizedBox(width: 8),
+                _FilterChipButton(
+                  label: 'Mensual',
+                  isSelected: appState.selectedFilter == TimeFilter.mensual,
+                  onTap: () => appState.setFilter(TimeFilter.mensual),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // Resumen General
+            Row(
+              children: [
+                Expanded(
+                  child: _StatCard(
+                    title: 'Ingresos',
+                    value: '\$${appState.filteredTotalRevenue.toStringAsFixed(2)}',
+                    icon: Icons.attach_money,
+                    color: Colors.green,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _StatCard(
+                    title: 'Pupusas Vendidas',
+                    value: '${appState.filteredTotalPupusasSold}',
+                    icon: Icons.local_fire_department,
+                    color: const Color(0xFFD85A32),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 24),
-            // Sección Ventas por Especialidad
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text('Ventas por Especialidad', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  SizedBox(height: 16),
-                  _BarItem(label: 'Queso', count: 52, maxCount: 60, color: Color(0xFFD85A32)),
-                  _BarItem(label: 'Revueltas', count: 45, maxCount: 60, color: Color(0xFFE67E22)),
-                  _BarItem(label: 'Frijol', count: 30, maxCount: 60, color: Color(0xFFF1C40F)),
-                  _BarItem(label: 'Loroco', count: 25, maxCount: 60, color: Color(0xFFD5DBDB)),
-                  _BarItem(label: 'Chicharrón', count: 18, maxCount: 60, color: Color(0xFF5D4037)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Tendencia Semanal
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text('Tendencia Semanal', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                        SizedBox(height: 4),
-                        Text('Incremento del +12% vs la semana pasada', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                      ],
+
+            const Text('Ventas por Especialidad', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+
+            if (salesMap.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                child: const Column(
+                  children: [
+                    Icon(Icons.bar_chart, size: 40, color: Colors.grey),
+                    SizedBox(height: 8),
+                    Text(
+                      'No hay ventas registradas para este periodo.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey),
                     ),
+                  ],
+                ),
+              )
+            else
+              ...salesMap.entries.map((entry) {
+                final String pupusaName = entry.key;
+                final int unitsSold = entry.value;
+                final double totalEarned = revenueMap[pupusaName] ?? 0.0;
+                final double progress = appState.filteredTotalPupusasSold > 0 ? (unitsSold / appState.filteredTotalPupusasSold) : 0.0;
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(pupusaName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                          Text('\$${totalEarned.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text('$unitsSold unidades vendidas', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                      const SizedBox(height: 8),
+                      LinearProgressIndicator(
+                        value: progress,
+                        backgroundColor: Colors.grey[200],
+                        color: const Color(0xFFD85A32),
+                        minHeight: 8,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ],
                   ),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: const Color(0xFFEAF5EE), borderRadius: BorderRadius.circular(12)),
-                    child: const Icon(Icons.north_east, color: Color(0xFF27AE60)),
-                  ),
-                ],
-              ),
-            )
+                );
+              }),
           ],
         ),
       ),
@@ -85,65 +137,46 @@ class AnaliticasScreen extends StatelessWidget {
   }
 }
 
-class _MetricCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final IconData icon;
-  final Color iconColor;
+class _FilterChipButton extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
 
-  const _MetricCard({required this.title, required this.value, required this.icon, required this.iconColor});
+  const _FilterChipButton({required this.label, required this.isSelected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(title, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
-              Icon(icon, size: 18, color: iconColor),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-        ],
-      ),
+    return ChoiceChip(
+      label: Text(label, style: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontWeight: FontWeight.bold)),
+      selected: isSelected,
+      selectedColor: const Color(0xFFD85A32),
+      backgroundColor: Colors.white,
+      onSelected: (_) => onTap(),
     );
   }
 }
 
-class _BarItem extends StatelessWidget {
-  final String label;
-  final int count;
-  final int maxCount;
+class _StatCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
   final Color color;
 
-  const _BarItem({required this.label, required this.count, required this.maxCount, required this.color});
+  const _StatCard({required this.title, required this.value, required this.icon, required this.color});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: Row(
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 80, child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500))),
-          Expanded(
-            child: Stack(
-              children: [
-                Container(height: 12, decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(6))),
-                FractionallySizedBox(
-                  widthFactor: count / maxCount,
-                  child: Container(height: 12, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(6))),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(width: 30, child: Text('$count', textAlign: TextAlign.right, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
+          Icon(icon, color: color, size: 28),
+          const SizedBox(height: 8),
+          Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          const SizedBox(height: 4),
+          Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
         ],
       ),
     );
