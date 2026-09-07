@@ -21,29 +21,8 @@ class AppState extends ChangeNotifier {
     PupusaItem(id: '5', name: 'Queso', description: 'Solo queso fundido elástico', price: 1.00, isActive: true),
   ];
 
-  final List<Order> _orders = [
-    Order(
-      id: '#1084',
-      customerName: 'María Santos',
-      items: [
-        OrderItem(pupusaName: 'Queso', quantity: 3, unitPrice: 1.00),
-        OrderItem(pupusaName: 'Frijol con Queso', quantity: 2, unitPrice: 1.00),
-        OrderItem(pupusaName: 'Revueltas', quantity: 1, unitPrice: 1.00),
-      ],
-      timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
-      status: OrderStatus.enPreparacion,
-    ),
-    Order(
-      id: '#1083',
-      customerName: 'Carlos Gómez',
-      items: [
-        OrderItem(pupusaName: 'Revueltas', quantity: 4, unitPrice: 1.00),
-        OrderItem(pupusaName: 'Chicharrón', quantity: 2, unitPrice: 1.25),
-      ],
-      timestamp: DateTime.now().subtract(const Duration(minutes: 15)),
-      status: OrderStatus.entregada,
-    ),
-  ];
+  // Lista de pedidos inicializada vacía para producción
+  final List<Order> _orders = [];
 
   List<PupusaItem> get pupusas => _pupusas;
   List<Order> get orders => _orders;
@@ -112,7 +91,7 @@ class AppState extends ChangeNotifier {
   }
 
   void addOrder(String customerName, List<OrderItem> items) {
-    final nextNumber = 1085 + _orders.length;
+    final nextNumber = 1001 + _orders.length;
     _orders.insert(
       0,
       Order(

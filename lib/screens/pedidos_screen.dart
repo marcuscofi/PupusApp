@@ -167,7 +167,8 @@ class PedidosScreen extends StatelessWidget {
     final nameController = TextEditingController();
     final Map<String, TextEditingController> quantityControllers = {};
 
-    for (var pupusa in state.pupusas.where((p) => p.isActive)) {
+    final activePupusas = state.pupusas.where((p) => p.isActive).toList();
+    for (var pupusa in activePupusas) {
       quantityControllers[pupusa.name] = TextEditingController(text: '0');
     }
 
@@ -178,6 +179,16 @@ class PedidosScreen extends StatelessWidget {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => StatefulBuilder(
         builder: (BuildContext context, StateSetter setStateModal) {
+          // Cálculo en tiempo real del total del pedido
+          double calculateTotal() {
+            double total = 0.0;
+            for (var p in activePupusas) {
+              int q = int.tryParse(quantityControllers[p.name]?.text ?? '0') ?? 0;
+              total += q * p.price;
+            }
+            return total;
+          }
+
           return Padding(
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
@@ -188,7 +199,7 @@ class PedidosScreen extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Nuevo Pedido Táctil', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const Text('Nuevo Pedido', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
                   TextField(
                     controller: nameController,
@@ -200,12 +211,14 @@ class PedidosScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text('Toca los botones para agregar:', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                  const SizedBox(height: 12),
+                  const Text('1. Toca para sumar rápidamente:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                  const SizedBox(height: 10),
+                  
+                  // BOTONES RÁPIDOS DE TOQUE
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: state.pupusas.where((p) => p.isActive).map((pupusa) {
+                    children: activePupusas.map((pupusa) {
                       final ctrl = quantityControllers[pupusa.name]!;
                       int currentQty = int.tryParse(ctrl.text) ?? 0;
                       return InkWell(
@@ -214,24 +227,115 @@ class PedidosScreen extends StatelessWidget {
                         },
                         child: Container(
                           width: 105,
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
                             color: currentQty > 0 ? const Color(0xFFD85A32) : Colors.white,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFD85A32).withOpacity(0.5)),
+                            border: Border.all(color: const Color(0xFFD85A32).withOpacity(0.4)),
                           ),
                           child: Column(
                             children: [
-                              Text(pupusa.name, style: TextStyle(fontWeight: FontWeight.bold, color: currentQty > 0 ? Colors.white : Colors.black87), textAlign: TextAlign.center),
+                              Text(
+                                pupusa.name,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  color: currentQty > 0 ? Colors.white : Colors.black87,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                               const SizedBox(height: 4),
-                              Text('$currentQty', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: currentQty > 0 ? Colors.white : const Color(0xFFD85A32))),
+                              Text(
+                                '+$currentQty',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: currentQty > 0 ? Colors.white : const Color(0xFFD85A32),
+                                ),
+                              ),
                             ],
                           ),
                         ),
                       );
                     }).toList(),
                   ),
+
                   const SizedBox(height: 20),
+                  const Divider(thickness: 1),
+                  const SizedBox(height: 10),
+                  const Text('2. Ajuste manual de cantidades (- / +):', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                  const SizedBox(height: 10),
+
+                  // SECCIÓN DE DETALLE / RESUMEN AJUSTABLE
+                  Container(
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                    child: Column(
+                      children: activePupusas.map((pupusa) {
+                        final ctrl = quantityControllers[pupusa.name]!;
+                        int currentQty = int.tryParse(ctrl.text) ?? 0;
+
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(pupusa.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                    Text('\$${pupusa.price.toStringAsFixed(2)} c/u', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                  ],
+                                ),
+                              ),
+                              // Botón Disminuir
+                              IconButton(
+                                icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 22),
+                                onPressed: currentQty > 0
+                                    ? () => setStateModal(() => ctrl.text = (currentQty - 1).toString())
+                                    : null,
+                              ),
+                              // Campo con número
+                              SizedBox(
+                                width: 45,
+                                child: TextField(
+                                  controller: ctrl,
+                                  keyboardType: TextInputType.number,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                  decoration: const InputDecoration(
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.symmetric(vertical: 6),
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  onChanged: (val) => setStateModal(() {}),
+                                ),
+                              ),
+                              // Botón Aumentar
+                              IconButton(
+                                icon: const Icon(Icons.add_circle_outline, color: Color(0xFFD85A32), size: 22),
+                                onPressed: () => setStateModal(() => ctrl.text = (currentQty + 1).toString()),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // TOTAL DE COMPRA Y REGISTRO
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Total estimado:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text('\$${calculateTotal().toStringAsFixed(2)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFFD85A32))),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFD85A32),
@@ -253,7 +357,7 @@ class PedidosScreen extends StatelessWidget {
                         Navigator.pop(ctx);
                       }
                     },
-                    child: const Text('Registrar Pedido', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    child: const Text('Registrar Pedido Final', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                   ),
                 ],
               ),
@@ -336,7 +440,6 @@ class _OrderCard extends StatelessWidget {
                     child: Text(statusLabel, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: statusText)),
                   ),
                   const SizedBox(width: 4),
-                  // BOTÓN DE ELIMINAR PEDIDO
                   IconButton(
                     icon: const Icon(Icons.delete_outline, size: 20, color: Colors.redAccent),
                     onPressed: () => _confirmDeleteOrder(context),
