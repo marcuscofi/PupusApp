@@ -1,7 +1,7 @@
 class PupusaItem {
   final String id;
-  String name; // Se removió 'final'
-  String description; // Se removió 'final'
+  String name;
+  String description;
   double price;
   bool isActive;
 
@@ -10,6 +10,22 @@ class PupusaItem {
     required this.name,
     required this.description,
     required this.price,
-    this.isActive = true,
+    required this.isActive,
   });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'description': description,
+        'price': price,
+        'isActive': isActive,
+      };
+
+  factory PupusaItem.fromJson(Map<String, dynamic> json) => PupusaItem(
+        id: json['id'],
+        name: json['name'],
+        description: json['description'],
+        price: (json['price'] as num).toDouble(),
+        isActive: json['isActive'] ?? true,
+      );
 }

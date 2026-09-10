@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../models/order.dart';
+import 'historial_ventas_screen.dart';
 
 class PedidosScreen extends StatelessWidget {
   const PedidosScreen({super.key});
@@ -9,361 +10,455 @@ class PedidosScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = Provider.of<AppState>(context);
+    final pendingMap = appState.pendingPupusasCount;
+    final totalPending = appState.totalPendingPupusasSum;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gestión de Pedidos', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.history, color: Color(0xFFD85A32)),
-            tooltip: 'Historial por Calendario',
-            onPressed: () => _showHistoryModal(context, appState),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: const Color(0xFFD85A32),
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Nuevo Pedido', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        onPressed: () => _showInteractiveOrderDialog(context, appState),
+        title: const Text('Gestión de Pedidos', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  side: const BorderSide(color: Color(0xFFD85A32)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                onPressed: () => _showHistoryModal(context, appState),
-                icon: const Icon(Icons.calendar_today, color: Color(0xFFD85A32), size: 18),
-                label: const Text('Ver Historial y Calendario de Ventas', style: TextStyle(color: Color(0xFFD85A32), fontWeight: FontWeight.bold)),
-              ),
-            ),
-            const SizedBox(height: 20),
+            // BOTONERA PRINCIPAL
             Row(
               children: [
-                const Text('Pendientes / En Cocina', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(color: const Color(0xFFD85A32), borderRadius: BorderRadius.circular(10)),
-                  child: Text('${appState.pendingOrders.length}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                )
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _showAddOrderModal(context, appState),
+                    icon: const Icon(Icons.add_circle, size: 28),
+                    label: const Text('NUEVO PEDIDO', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFD85A32),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 3,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const HistorialVentasScreen()),
+                    );
+                  },
+                  icon: const Icon(Icons.calendar_month_rounded, size: 26, color: Color(0xFFD85A32)),
+                  label: const Text('Historial\npor Fecha', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFFD85A32))),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    side: const BorderSide(color: Color(0xFFD85A32), width: 2),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 12),
-            if (appState.pendingOrders.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: Center(child: Text('No hay pedidos pendientes.', style: TextStyle(color: Colors.grey))),
-              )
-            else
-              ...appState.pendingOrders.map((order) => _OrderCard(order: order)),
+
+            const SizedBox(height: 20),
+
+            // DASHBOARD PENDIENTES
+            Card(
+              elevation: 3,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              color: totalPending == 0 ? const Color(0xFFE8F5E9) : const Color(0xFFFFF8F6),
+              child: Padding(
+                padding: const EdgeInsets.all(18.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: const [
+                            Icon(Icons.soup_kitchen_rounded, color: Color(0xFFD85A32), size: 28),
+                            SizedBox(width: 10),
+                            Text('PUPUSAS PENDIENTES', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: totalPending == 0 ? const Color(0xFF2E7D32) : const Color(0xFFD85A32),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '$totalPending Total',
+                            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text('Se restan automáticamente al entregar el pedido:', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                    const Divider(height: 20),
+                    if (totalPending == 0)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12.0),
+                        child: Center(
+                          child: Text('¡Sin pupusas pendientes en la plancha! 🎉', style: TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold, fontSize: 16)),
+                        ),
+                      )
+                    else
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: pendingMap.entries.where((e) => e.value > 0).map((entry) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFD85A32), width: 1.5),
+                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 2))],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(entry.key, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                const SizedBox(width: 12),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(color: const Color(0xFFD85A32), borderRadius: BorderRadius.circular(8)),
+                                  child: Text('${entry.value}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                  ],
+                ),
+              ),
+            ),
 
             const SizedBox(height: 24),
-            const Text('Recientes (Máx 3 entregadas)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
-            const SizedBox(height: 12),
-            if (appState.recentDeliveredOrders.isEmpty)
-              const Text('Aún no hay entregas registradas.', style: TextStyle(color: Colors.grey, fontSize: 13))
+            const Text('PEDIDOS EN CURSO', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+            const SizedBox(height: 10),
+
+            if (appState.pendingOrders.isEmpty)
+              Card(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                child: const Padding(
+                  padding: EdgeInsets.all(28.0),
+                  child: Center(child: Text('No hay pedidos pendientes.', style: TextStyle(color: Colors.grey, fontSize: 16))),
+                ),
+              )
             else
-              ...appState.recentDeliveredOrders.map((order) => _OrderCard(order: order)),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: appState.pendingOrders.length,
+                itemBuilder: (context, index) {
+                  final order = appState.pendingOrders[index];
+                  return _OrderCard(order: order, appState: appState);
+                },
+              ),
+
+            const SizedBox(height: 28),
+            const Text('ÚLTIMAS 3 VENTAS ENTREGADAS', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+            const SizedBox(height: 10),
+
+            if (appState.recentDeliveredOrders.isEmpty)
+              Card(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                child: const Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: Center(child: Text('Aún no hay ventas entregadas hoy.', style: TextStyle(color: Colors.grey, fontSize: 15))),
+                ),
+              )
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: appState.recentDeliveredOrders.length,
+                itemBuilder: (context, index) {
+                  final order = appState.recentDeliveredOrders[index];
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    color: Colors.grey[100],
+                    child: ListTile(
+                      title: Text('${order.id} - ${order.customerName}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      subtitle: Text('${order.details}\nEntregado a las ${order.formattedTime}', style: const TextStyle(fontSize: 14)),
+                      trailing: Text('\$${order.totalPrice.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF2E7D32))),
+                      isThreeLine: true,
+                    ),
+                  );
+                },
+              ),
           ],
         ),
       ),
     );
   }
 
-  void _showHistoryModal(BuildContext context, AppState state) {
-    DateTime selectedDate = DateTime.now();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) {
-          final ordersForDate = state.getDeliveredOrdersForDate(selectedDate);
-          final totalSales = ordersForDate.fold(0.0, (sum, o) => sum + o.totalPrice);
-
-          return Container(
-            height: MediaQuery.of(context).size.height * 0.8,
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Historial de Ventas', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Text('Fecha: ${selectedDate.day}/${selectedDate.month}/${selectedDate.year}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    const Spacer(),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD85A32)),
-                      onPressed: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: selectedDate,
-                          firstDate: DateTime(2025),
-                          lastDate: DateTime.now(),
-                        );
-                        if (picked != null) {
-                          setModalState(() => selectedDate = picked);
-                        }
-                      },
-                      icon: const Icon(Icons.date_range, color: Colors.white, size: 16),
-                      label: const Text('Cambiar día', style: TextStyle(color: Colors.white)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: const Color(0xFFFDF0ED), borderRadius: BorderRadius.circular(10)),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Pedidos: ${ordersForDate.length}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      Text('Total: \$${totalSales.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFD85A32))),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: ordersForDate.isEmpty
-                      ? const Center(child: Text('No hay ventas registradas en esta fecha.', style: TextStyle(color: Colors.grey)))
-                      : ListView.builder(
-                          itemCount: ordersForDate.length,
-                          itemBuilder: (c, i) => _OrderCard(order: ordersForDate[i]),
-                        ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  void _showInteractiveOrderDialog(BuildContext context, AppState state) {
+  // MODAL TOUCH-FRIENDLY MEJORADO
+  static void _showAddOrderModal(BuildContext context, AppState appState) {
     final nameController = TextEditingController();
-    final Map<String, TextEditingController> quantityControllers = {};
-
-    final activePupusas = state.pupusas.where((p) => p.isActive).toList();
-    for (var pupusa in activePupusas) {
-      quantityControllers[pupusa.name] = TextEditingController(text: '0');
-    }
+    final Map<String, int> selectedQuantities = {};
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFFF6F3ED),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => StatefulBuilder(
-        builder: (BuildContext context, StateSetter setStateModal) {
-          // Cálculo en tiempo real del total del pedido
-          double calculateTotal() {
-            double total = 0.0;
-            for (var p in activePupusas) {
-              int q = int.tryParse(quantityControllers[p.name]?.text ?? '0') ?? 0;
-              total += q * p.price;
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            double calculateTotal() {
+              double total = 0.0;
+              selectedQuantities.forEach((name, qty) {
+                final p = appState.pupusas.firstWhere((e) => e.name == name, orElse: () => appState.pupusas.first);
+                total += qty * p.price;
+              });
+              return total;
             }
-            return total;
-          }
 
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-              top: 24, left: 20, right: 20,
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Nuevo Pedido', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: nameController,
-                    decoration: InputDecoration(
-                      labelText: 'Nombre del Cliente',
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                top: 20,
+                left: 16,
+                right: 16,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text('Nuevo Pedido', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: nameController,
+                      style: const TextStyle(fontSize: 18),
+                      decoration: InputDecoration(
+                        labelText: 'Nombre del Cliente (Opcional)',
+                        labelStyle: const TextStyle(fontSize: 16),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                        prefixIcon: const Icon(Icons.person_outline, size: 28),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text('1. Toca para sumar rápidamente:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-                  const SizedBox(height: 10),
-                  
-                  // BOTONES RÁPIDOS DE TOQUE
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: activePupusas.map((pupusa) {
-                      final ctrl = quantityControllers[pupusa.name]!;
-                      int currentQty = int.tryParse(ctrl.text) ?? 0;
-                      return InkWell(
-                        onTap: () {
-                          setStateModal(() => ctrl.text = (currentQty + 1).toString());
-                        },
-                        child: Container(
-                          width: 105,
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: currentQty > 0 ? const Color(0xFFD85A32) : Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFD85A32).withOpacity(0.4)),
-                          ),
-                          child: Column(
-                            children: [
-                              Text(
-                                pupusa.name,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                  color: currentQty > 0 ? Colors.white : Colors.black87,
-                                ),
-                                textAlign: TextAlign.center,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '+$currentQty',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: currentQty > 0 ? Colors.white : const Color(0xFFD85A32),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
+                    const SizedBox(height: 16),
 
-                  const SizedBox(height: 20),
-                  const Divider(thickness: 1),
-                  const SizedBox(height: 10),
-                  const Text('2. Ajuste manual de cantidades (- / +):', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-                  const SizedBox(height: 10),
+                    const Text(
+                      '👇 Toca para sumar (+1):',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Color(0xFFD85A32)),
+                    ),
+                    const SizedBox(height: 12),
 
-                  // SECCIÓN DE DETALLE / RESUMEN AJUSTABLE
-                  Container(
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-                    child: Column(
-                      children: activePupusas.map((pupusa) {
-                        final ctrl = quantityControllers[pupusa.name]!;
-                        int currentQty = int.tryParse(ctrl.text) ?? 0;
-
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(pupusa.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                    Text('\$${pupusa.price.toStringAsFixed(2)} c/u', style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                                  ],
-                                ),
-                              ),
-                              // Botón Disminuir
-                              IconButton(
-                                icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 22),
-                                onPressed: currentQty > 0
-                                    ? () => setStateModal(() => ctrl.text = (currentQty - 1).toString())
-                                    : null,
-                              ),
-                              // Campo con número
-                              SizedBox(
-                                width: 45,
-                                child: TextField(
-                                  controller: ctrl,
-                                  keyboardType: TextInputType.number,
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                  decoration: const InputDecoration(
-                                    isDense: true,
-                                    contentPadding: EdgeInsets.symmetric(vertical: 6),
-                                    border: OutlineInputBorder(),
-                                  ),
-                                  onChanged: (val) => setStateModal(() {}),
-                                ),
-                              ),
-                              // Botón Aumentar
-                              IconButton(
-                                icon: const Icon(Icons.add_circle_outline, color: Color(0xFFD85A32), size: 22),
-                                onPressed: () => setStateModal(() => ctrl.text = (currentQty + 1).toString()),
-                              ),
-                            ],
-                          ),
+                    // BOTONES TOUCH JUGOSOS CON ANIMACIÓN DE REBOTE
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: appState.pupusas.where((p) => p.isActive).map((pupusa) {
+                        final currentQty = selectedQuantities[pupusa.name] ?? 0;
+                        return _JuicyButton(
+                          label: pupusa.name,
+                          quantity: currentQty,
+                          onTap: () {
+                            setModalState(() {
+                              selectedQuantities[pupusa.name] = currentQty + 1;
+                            });
+                          },
                         );
                       }).toList(),
                     ),
-                  ),
 
-                  const SizedBox(height: 16),
+                    const SizedBox(height: 20),
+                    const Divider(),
+                    const Text('Ajuste de cantidades:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 8),
 
-                  // TOTAL DE COMPRA Y REGISTRO
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Total estimado:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                      Text('\$${calculateTotal().toStringAsFixed(2)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFFD85A32))),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+                    // LISTA MANUAL
+                    ...appState.pupusas.where((p) => p.isActive).map((pupusa) {
+                      final qty = selectedQuantities[pupusa.name] ?? 0;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6.0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${pupusa.name}\n\$${pupusa.price.toStringAsFixed(2)} c/u',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                            ),
+                            InkWell(
+                              onTap: qty > 0
+                                  ? () {
+                                      setModalState(() {
+                                        selectedQuantities[pupusa.name] = qty - 1;
+                                      });
+                                    }
+                                  : null,
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: qty > 0 ? Colors.grey[300] : Colors.grey[100],
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(Icons.remove, size: 26),
+                              ),
+                            ),
+                            Container(
+                              width: 50,
+                              alignment: Alignment.center,
+                              child: Text('$qty', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
+                            ),
+                            InkWell(
+                              onTap: () {
+                                setModalState(() {
+                                  selectedQuantities[pupusa.name] = qty + 1;
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFD85A32),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(Icons.add, color: Colors.white, size: 26),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
 
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFD85A32),
-                      minimumSize: const Size(double.infinity, 50),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    const SizedBox(height: 20),
+
+                    // TOTAL Y GUARDAR
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(color: const Color(0xFFFDF0ED), borderRadius: BorderRadius.circular(14)),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('TOTAL PEDIDO:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                          Text('\$${calculateTotal().toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 26, color: Color(0xFFD85A32))),
+                        ],
+                      ),
                     ),
-                    onPressed: () {
-                      List<OrderItem> orderItems = [];
-                      quantityControllers.forEach((name, ctrl) {
-                        int qty = int.tryParse(ctrl.text) ?? 0;
-                        if (qty > 0) {
-                          final pupusaObj = state.pupusas.firstWhere((p) => p.name == name);
-                          orderItems.add(OrderItem(pupusaName: name, quantity: qty, unitPrice: pupusaObj.price));
-                        }
-                      });
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        final items = <OrderItem>[];
+                        selectedQuantities.forEach((name, qty) {
+                          if (qty > 0) {
+                            final p = appState.pupusas.firstWhere((element) => element.name == name);
+                            items.add(OrderItem(pupusaName: name, quantity: qty, unitPrice: p.price));
+                          }
+                        });
 
-                      if (orderItems.isNotEmpty) {
-                        state.addOrder(nameController.text, orderItems);
+                        if (items.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Selecciona al menos una pupusa.')));
+                          return;
+                        }
+
+                        appState.addOrder(nameController.text.trim(), items);
                         Navigator.pop(ctx);
-                      }
-                    },
-                    child: const Text('Registrar Pedido Final', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                  ),
-                ],
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFD85A32),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: const Text('GUARDAR PEDIDO', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+// COMPONENTE NATIVO: BOTÓN TOUCH JUGOSO CON EFECTO DE REBOTE
+class _JuicyButton extends StatefulWidget {
+  final String label;
+  final int quantity;
+  final VoidCallback onTap;
+
+  const _JuicyButton({
+    required this.label,
+    required this.quantity,
+    required this.onTap,
+  });
+
+  @override
+  State<_JuicyButton> createState() => _JuicyButtonState();
+}
+
+class _JuicyButtonState extends State<_JuicyButton> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        scale: _isPressed ? 0.88 : 1.0, // <-- Efecto táctil al presionar
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeOutCubic,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+          decoration: BoxDecoration(
+            color: widget.quantity > 0 ? const Color(0xFFD85A32) : const Color(0xFFFDF0ED),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFD85A32), width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFD85A32).withOpacity(_isPressed ? 0.1 : 0.25),
+                blurRadius: _isPressed ? 2 : 8,
+                offset: Offset(0, _isPressed ? 2 : 5),
+              )
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '+1 ${widget.label}',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: widget.quantity > 0 ? Colors.white : const Color(0xFFD85A32),
+                ),
+              ),
+              if (widget.quantity > 0) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${widget.quantity}',
+                    style: const TextStyle(
+                      color: Color(0xFFD85A32),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                )
+              ]
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -371,120 +466,77 @@ class PedidosScreen extends StatelessWidget {
 
 class _OrderCard extends StatelessWidget {
   final Order order;
-  const _OrderCard({required this.order});
+  final AppState appState;
 
-  void _confirmDeleteOrder(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Cancelar y Eliminar Pedido'),
-        content: Text('¿Deseas eliminar el pedido ${order.id} de "${order.customerName}"? Esta acción no se puede deshacer.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            onPressed: () {
-              Provider.of<AppState>(context, listen: false).deleteOrder(order.id);
-              Navigator.pop(ctx);
-            },
-            child: const Text('Eliminar', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
+  const _OrderCard({required this.order, required this.appState});
 
   @override
   Widget build(BuildContext context) {
-    Color statusBg;
-    Color statusText;
-    String statusLabel;
-
-    switch (order.status) {
-      case OrderStatus.enPreparacion:
-        statusBg = const Color(0xFFFDF0ED);
-        statusText = const Color(0xFFD85A32);
-        statusLabel = 'En preparación';
-        break;
-      case OrderStatus.listaParaEntregar:
-        statusBg = const Color(0xFFE8F4F8);
-        statusText = const Color(0xFF2980B9);
-        statusLabel = 'Lista para entregar';
-        break;
-      case OrderStatus.entregada:
-        statusBg = const Color(0xFFEAF5EE);
-        statusText = const Color(0xFF27AE60);
-        statusLabel = 'Entregada';
-        break;
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('PEDIDO ${order.id}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: statusBg, borderRadius: BorderRadius.circular(12)),
-                    child: Text(statusLabel, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: statusText)),
+    return Card(
+      margin: const EdgeInsets.only(bottom: 14),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('${order.id} - ${order.customerName}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: order.status.color.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  const SizedBox(width: 4),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline, size: 20, color: Colors.redAccent),
-                    onPressed: () => _confirmDeleteOrder(context),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(order.customerName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              Text('\$${order.totalPrice.toStringAsFixed(2)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFFD85A32))),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(order.details, style: const TextStyle(fontSize: 14, color: Colors.black87)),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Icon(Icons.access_time, size: 14, color: Colors.grey),
-              const SizedBox(width: 4),
-              Text(order.timeAgo, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-            ],
-          ),
-          if (order.status != OrderStatus.entregada) ...[
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFD85A32),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  child: Text(order.status.label, style: TextStyle(color: order.status.color, fontWeight: FontWeight.bold, fontSize: 13)),
                 ),
-                onPressed: () => Provider.of<AppState>(context, listen: false).advanceOrderStatus(order.id),
-                icon: const Icon(Icons.check, size: 18, color: Colors.white),
-                label: Text(
-                  order.status == OrderStatus.enPreparacion ? 'Marcar Listo' : 'Completar y Entregar',
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
+              ],
             ),
-          ]
-        ],
+            const SizedBox(height: 10),
+            Text(order.details, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black87)),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Total: \$${order.totalPrice.toStringAsFixed(2)} • ${order.formattedTime}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.grey)),
+                Row(
+                  children: [
+                    if (order.status == OrderStatus.enPreparacion)
+                      ElevatedButton.icon(
+                        onPressed: () => appState.advanceOrderStatus(order.id),
+                        icon: const Icon(Icons.check, size: 20),
+                        label: const Text('Marcar Listo', style: TextStyle(fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32), foregroundColor: Colors.white),
+                      ),
+                    if (order.status == OrderStatus.listaParaEntregar)
+                      ElevatedButton.icon(
+                        onPressed: () => appState.advanceOrderStatus(order.id),
+                        icon: const Icon(Icons.done_all, size: 20),
+                        label: const Text('Entregar', style: TextStyle(fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[700], foregroundColor: Colors.white),
+                      ),
+                    PopupMenuButton<String>(
+                      onSelected: (val) {
+                        if (val == 'cancel') {
+                          appState.setOrderStatus(order.id, OrderStatus.cancelada);
+                        } else if (val == 'delete') {
+                          appState.deleteOrder(order.id);
+                        }
+                      },
+                      itemBuilder: (ctx) => [
+                        const PopupMenuItem(value: 'cancel', child: Text('Cancelar pedido')),
+                        const PopupMenuItem(value: 'delete', child: Text('Eliminar pedido', style: TextStyle(color: Colors.red))),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

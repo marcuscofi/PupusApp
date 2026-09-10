@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
-import '../models/pupusa_item.dart';
+import 'historial_datos_screen.dart';
 
 class ConfiguracionScreen extends StatelessWidget {
   const ConfiguracionScreen({super.key});
@@ -12,81 +12,100 @@ class ConfiguracionScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Configuración', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
+        title: const Text('Configuración del Menú', style: TextStyle(fontWeight: FontWeight.bold)),
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Mis Pupusas', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                Text('${appState.activePupusasCount} activas', style: const TextStyle(fontSize: 12, color: Color(0xFFD85A32), fontWeight: FontWeight.bold)),
+                const Text(
+                  'ESPECIALIDADES EN MENÚ',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () => _showAddPupusaModal(context, appState),
+                  icon: const Icon(Icons.add, size: 20),
+                  label: const Text('Agregar', style: TextStyle(fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFD85A32),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 12),
+
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: appState.pupusas.length,
               itemBuilder: (context, index) {
-                final item = appState.pupusas[index];
-                return Container(
+                final pupusa = appState.pupusas[index];
+                return Card(
                   margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                            Text(item.description, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: ListTile(
+                    title: Text(
+                      pupusa.name,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 17,
+                        decoration: pupusa.isActive ? null : TextDecoration.lineThrough,
+                        color: pupusa.isActive ? Colors.black87 : Colors.grey,
+                      ),
+                    ),
+                    subtitle: Text('${pupusa.description}\n\$${pupusa.price.toStringAsFixed(2)}', style: const TextStyle(fontSize: 14)),
+                    isThreeLine: true,
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Switch(
+                          value: pupusa.isActive,
+                          activeColor: const Color(0xFFD85A32),
+                          onChanged: (val) => appState.togglePupusaStatus(index, val),
+                        ),
+                        PopupMenuButton<String>(
+                          onSelected: (val) {
+                            if (val == 'delete') {
+                              appState.deletePupusa(pupusa.id);
+                            }
+                          },
+                          itemBuilder: (ctx) => [
+                            const PopupMenuItem(value: 'delete', child: Text('Eliminar', style: TextStyle(color: Colors.red))),
                           ],
                         ),
-                      ),
-                      Text('\$${item.price.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      IconButton(
-                        icon: const Icon(Icons.edit_outlined, size: 20, color: Colors.blueGrey),
-                        onPressed: () => _showEditPupusaDialog(context, appState, item),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline, size: 20, color: Colors.redAccent),
-                        onPressed: () => _confirmDeleteDialog(context, appState, item),
-                      ),
-                      Switch(
-                        value: item.isActive,
-                        activeColor: const Color(0xFFD85A32),
-                        onChanged: (val) => appState.togglePupusaStatus(index, val),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 );
               },
             ),
-            const SizedBox(height: 16),
-            // BOTÓN PARA AGREGAR NUEVAS PUPUSAS LIBREMENTE
-            OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 50),
-                side: const BorderSide(color: Color(0xFFD85A32)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+
+            const SizedBox(height: 28),
+
+            const Text('OPCIONES AVANZADAS', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+            const SizedBox(height: 12),
+
+            Card(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              child: ListTile(
+                leading: const Icon(Icons.folder_zip_rounded, size: 32, color: Color(0xFFD85A32)),
+                title: const Text('Archivo e Importación de Historial', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                subtitle: const Text('Ver archivo, copiar respaldo o cargar datos externos'),
+                trailing: const Icon(Icons.chevron_right, size: 28),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const HistorialDatosScreen()),
+                  );
+                },
               ),
-              onPressed: () => _showEditPupusaDialog(context, appState, null),
-              icon: const Icon(Icons.add, color: Color(0xFFD85A32)),
-              label: const Text('Agregar tipo de pupusa', style: TextStyle(color: Color(0xFFD85A32), fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -94,70 +113,50 @@ class ConfiguracionScreen extends StatelessWidget {
     );
   }
 
-  void _confirmDeleteDialog(BuildContext context, AppState state, PupusaItem item) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Confirmar eliminación'),
-        content: Text('¿Deseas eliminar la pupusa de "${item.name}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            onPressed: () {
-              state.deletePupusa(item.id);
-              Navigator.pop(ctx);
-            },
-            child: const Text('Eliminar', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
+  static void _showAddPupusaModal(BuildContext context, AppState appState) {
+    final nameCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+    final priceCtrl = TextEditingController();
 
-  void _showEditPupusaDialog(BuildContext context, AppState state, PupusaItem? item) {
-    final nameCtrl = TextEditingController(text: item?.name ?? '');
-    final descCtrl = TextEditingController(text: item?.description ?? '');
-    final priceCtrl = TextEditingController(text: item != null ? item.price.toStringAsFixed(2) : '');
-
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(item == null ? 'Nueva Pupusa' : 'Editar Pupusa'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Nombre del Sabor')),
-            TextField(controller: descCtrl, decoration: const InputDecoration(labelText: 'Ingredientes')),
-            TextField(
-              controller: priceCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'Precio (\$)'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD85A32)),
-            onPressed: () {
-              final price = double.tryParse(priceCtrl.text) ?? 1.00;
-              if (nameCtrl.text.isNotEmpty) {
-                if (item == null) {
-                  state.addPupusa(nameCtrl.text, descCtrl.text, price);
-                } else {
-                  state.updatePupusa(item.id, nameCtrl.text, descCtrl.text, price);
-                }
-                Navigator.pop(ctx);
-              }
-            },
-            child: const Text('Guardar', style: TextStyle(color: Colors.white)),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom + 16, top: 20, left: 16, right: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Nueva Especialidad', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Nombre de la pupusa', border: OutlineInputBorder())),
+              const SizedBox(height: 12),
+              TextField(controller: descCtrl, decoration: const InputDecoration(labelText: 'Descripción / Ingredientes', border: OutlineInputBorder())),
+              const SizedBox(height: 12),
+              TextField(controller: priceCtrl, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Precio (\$) ', border: OutlineInputBorder())),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  final name = nameCtrl.text.trim();
+                  final desc = descCtrl.text.trim();
+                  final price = double.tryParse(priceCtrl.text) ?? 0.0;
+                  if (name.isNotEmpty && price > 0) {
+                    appState.addPupusa(name, desc, price);
+                    Navigator.pop(ctx);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFD85A32),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(50),
+                ),
+                child: const Text('Guardar Especialidad', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

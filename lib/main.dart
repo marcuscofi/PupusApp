@@ -7,8 +7,11 @@ import 'screens/home_screen.dart';
 import 'screens/pedidos_screen.dart';
 import 'screens/analiticas_screen.dart';
 import 'screens/configuracion_screen.dart';
+import 'screens/historial_datos_screen.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
   runApp(
     ChangeNotifierProvider(
       create: (context) => AppState(),
@@ -32,6 +35,7 @@ class PupusApp extends StatelessWidget {
         '/pedidos': (context) => const PedidosScreen(),
         '/analiticas': (context) => const AnaliticasScreen(),
         '/configuracion': (context) => const ConfiguracionScreen(),
+        '/historial_datos': (context) => const HistorialDatosScreen(),
       },
     );
   }
